@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." name="springTest">
+	<echo>******* start *******</echo>
+
+	<property name="PROJECT_NAME" value="springTest" />
+	<property file="build.properties" />
+
+	<path id="classpath">
+		<fileset dir="${lib.dir}" includes="*.jar" />
+	</path>
+
+	<!--<taskdef resource="net/sf/antcontrib/antcontrib.properties"/>-->
+	<!-- System Properties -->
+	<property name="work.home.dir" value="${basedir}/target" />
+	<property name="was.tar.dir" value="${basedir}/build/was" />
+	<property name="web.tar.dir" value="${basedir}/build/web" />
+
+	<property name="deploy.conf.dir" value="src/main/webapp/WEB-INF/" />
+	<property name="deploy.conf.conf" value="${deploy.conf.dir}/config/egovframework/springmvc" />
+	<property name="deploy.conf가쯔야.lib" value="${deploy.conf.dir}/lib" />
+
+	<target name="was_stop">
+		<echo message="was.remote.server set to = ${dev.was.server}" />
+		<echo message="'### WAS STOP ###" />
+		<sshexec host="${dev.was.server}" username="${dev.was.user}" password="${dev.was.password}" command="/usr/local/tomcat/bin/shutdown.sh" trust="true" failonerror="false" timeout="30000" />
+		<!--<sshexec host="${dev.was.server}" username="${dev.was.user}"	password="${dev.was.password}" 
+			    	command="${dev.lena.dir}/shutdown.sh -force" trust="true" failonerror="false" timeout="30000"/>-->
+	</target>
+
+	<!-- run init -->
+	<target name="init">
+		<echo>******* init start *******</echo>
+		<delete dir="${target.dir}/WEB-INF" quiet="false" />
+		<delete dir="${target.dir}/resources" quiet="false" />
+		<mkdir dir="${target.dir}/WEB-INF" />
+		<mkdir dir="${target.dir}/resources" />
+		<mkdir dir="${build.dir.classes}" />
+	</target>
+
+	<!-- java compile -->
+	<target name="compile">
+		<echo>******* compfile start include xml *******</echo>
+		<javac srcdir="${src.java.dir}" destdir="${build.dir.classes}" encoding="${java.encoding}" debug="off" deprecation="off" failonerror="true" includes="**/*.*">
+
+			<classpath>
+				<fileset dir="${java.lib}">
+					<include name="**/*.jar" />
+				</fileset>
+				<fileset dir="${jre.lib}">
+					<include name="**/*.jar" />
+				</fileset>
+				<fileset dir="${web.lib}">
+					<include name="**/*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+	</target>
+
+	<!-- Class Copy -->
+	<target name="copy">
+		<echo>******* copy start  *******</echo>
+
+		<copy todir='${build.dir.classes}' overwrite='true' verbose="true">
+			<fileset dir="${src.java.dir}">
+				<include name="**/**" />
+				<exclude name="**/*.java" />
+			</fileset>
+		</copy>
+
+		<copy todir='${build.dir}' overwrite='true' verbose="true">
+			<fileset dir="${src.was.dir}">
+				<include name="**/**" />
+				<exclude name="classes/**" />
+			</fileset>
+		</copy>
+
+		<copy todir='${target.dir}/resources' overwrite='true' verbose="true">
+			<fileset dir="${src.web.dir}">
+				<include name="**/**" />
+			</fileset>
+		</copy>
+
+		<copy file='WebContent/error.jsp' tofile='${target.dir}/error.jsp' overwrite='true' verbose="true" />
+
+	</target>
+
+	<target name="web_tar">
+		<echo>Delete directory and create directory</echo>
+		<delete dir="${web.tar.dir}" />
+		<mkdir dir="${web.tar.dir}" />
+		<tar destfile="${web.tar.dir}/${PROJECT_NAME}.tar" longfile="gnu">
+			<tarfileset dir="${work.home.dir}" preserveLeadingSlashes="true">
+				<include name="resources/**" />
+				<exclude name="WEB-INF/**" />
+			</tarfileset>
+		</tar>
+	</target>
+
+	<target name="was_tar">
+		<echo>Delete directory and create directory</echo>
+		<delete dir="${was.tar.dir}" />
+		<mkdir dir="${was.tar.dir}" />
+		<tar destfile="${was.tar.dir}/${PROJECT_NAME}.tar" longfile="gnu">
+			<tarfileset dir="${work.home.dir}" preserveLeadingSlashes="true">
+				<include name="WEB-INF/**" />
+				<include name="**/*.jsp" />
+			</tarfileset>
+		</tar>
+	</target>
+
+	<target name="web_deploy">
+		<echo message="web.remote.server set to = ${dev.web.server}" />
+		<echo message="'### WEB Deploy ###" />
+		<scp localfile="${web.tar.dir}/${PROJECT_NAME}.tar" todir="${dev.web.user}:${dev.web.password}@${dev.web.server}:${dev.web.dir}" trust="true" />
+		<sshexec host="${dev.web.server}" username="${dev.web.user}" password="${dev.web.password}" command="tar xvf ${dev.web.dir}/${PROJECT_NAME}.tar -C ${dev.web.dir}" trust="true" />
+		<echo message="### WEB Deploy finished ###" />
+	</target>
+
+	<target name="was_deploy">
+		<echo message="was.remote.server set to = ${dev.was.server}" />
+		<echo message="'### WAS Deoloy ###" />
+		<scp localfile="${was.tar.dir}/${PROJECT_NAME}.tar" todir="${dev.was.user}:${dev.was.password}@${dev.was.server}:${dev.was.dir}" trust="true" />
+		<sshexec host="${dev.was.server}" username="${dev.was.user}" password="${dev.was.password}" command="tar xvf ${dev.was.dir}/${PROJECT_NAME}.tar -C ${dev.was.dir}" trust="true" timeout="30000" />
+		<echo message="${was.tar.dir}/${PROJECT_NAME}.tar ${dev.was.user}:${dev.was.password}@${dev.was.server}:${dev.was.dir}" />
+		<echo message="### WAS Deploy finished ###" />
+	</target>
+
+
+	
+	<!--<target name="was_deploy">
+		<foreach list="${dev.was.server}" target="wasdeploy" param="dev.was.server" parallel="true" />
+	</target>-->
+
+	<!--<target name="web_deploy">
+		<foreach list="${dev.web.server}" target="webdeploy" param="dev.web.server" parallel="true" />
+	</target>-->
+
+	<target name="copy_properties">
+		<echo message="was.remote.server set to = ${dev.was.server}" />
+		<echo message="'### PROPERTIES COPY START ###" />
+		<sshexec host="${dev.was.server}" username="${dev.was.user}" password="${dev.was.password}" command="cd ${dev.was.dir};
+	    			 cp WEB-INF/classes/svrcfg/dev/jezpdfreport.properties WEB-INF/classes/jezpdfreport.properties;
+	    			 cp WEB-INF/classes/svrcfg/dev/kdcs.properties WEB-INF/classes/kdcs.properties;
+	    			 cp WEB-INF/classes/svrcfg/dev/framework-config.properties WEB-INF/config/telaio/framework-config.properties;
+	    			 cp WEB-INF/classes/svrcfg/dev/network-config.yaml WEB-INF/config/telaio/network-config.yaml;
+	    			 cp WEB-INF/classes/svrcfg/dev/51f71f6270454dfa8dace669d46eaa3d.key WEB-INF/config/51f71f6270454dfa8dace669d46eaa3d.key;
+	    			 cp WEB-INF/classes/svrcfg/dev/custom.xml WEB-INF/classes/config/custom.xml;
+					 rm -rf WEB-INF/classes/svrcfg" trust="true" timeout="30000" failonerror="false" />
+		<echo message="### PROPERTIES COPY finished ###" />
+	</target>
+
+	<target name="was_start">
+		<echo message="was.remote.server set to = ${dev.was.server}" />
+		<echo message="'### WAS START ###" />
+		<sshexec host="${dev.was.server}" username="${dev.was.user}" password="${dev.was.password}" command="/usr/local/tomcat/bin/startup.sh" trust="true" timeout="5000" failonerror="false" />
+		<echo message="### WAS START finished ###" />
+	</target>
+
+	<target name="build_all">
+		<antcall target="was_stop" />
+		<antcall target="init" />
+		<antcall target="compile" />
+		<antcall target="copy" />
+		<antcall target="web_tar" />
+		<antcall target="was_tar" />
+		<antcall target="web_deploy" />
+		<antcall target="was_deploy" />
+		<!--<antcall target="copy_properties" />-->
+		<antcall target="was_start" />
+	</target>
+</project>
